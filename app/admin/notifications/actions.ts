@@ -86,48 +86,58 @@ export async function sendUserNotification(params: {
 }
 
 export async function getNotificationAnalytics() {
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+    try {
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
 
-    const [total, read, unread, recentNotifications] = await Promise.all([
-        prisma.notification.count(),
-        prisma.notification.count({ where: { isRead: true } }),
-        prisma.notification.count({ where: { isRead: false } }),
-        prisma.notification.findMany({
-            where: {
-                createdAt: {
-                    gte: sevenDaysAgo,
+        const [total, read, unread, recentNotifications] = await Promise.all([
+            prisma.notification.count(),
+            prisma.notification.count({ where: { isRead: true } }),
+            prisma.notification.count({ where: { isRead: false } }),
+            prisma.notification.findMany({
+                where: {
+                    createdAt: {
+                        gte: sevenDaysAgo,
+                    },
                 },
-            },
-            select: {
-                createdAt: true,
-            },
-        }),
-    ]);
+                select: {
+                    createdAt: true,
+                },
+            }),
+        ]);
 
-    // Format recent activity by day
-    const activityMap = new Map();
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-        const dateKey = d.toLocaleDateString();
-        activityMap.set(dateKey, 0);
-    }
-
-    recentNotifications.forEach((n) => {
-        const dateKey = new Date(n.createdAt).toLocaleDateString();
-        if (activityMap.has(dateKey)) {
-            activityMap.set(dateKey, activityMap.get(dateKey) + 1);
+        // Format recent activity by day
+        const activityMap = new Map();
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            const dateKey = d.toLocaleDateString();
+            activityMap.set(dateKey, 0);
         }
-    });
 
-    const activityData = Array.from(activityMap.entries())
-        .map(([date, count]) => ({ date, count }))
-        .reverse();
+        recentNotifications.forEach((n) => {
+            const dateKey = new Date(n.createdAt).toLocaleDateString();
+            if (activityMap.has(dateKey)) {
+                activityMap.set(dateKey, activityMap.get(dateKey) + 1);
+            }
+        });
 
-    return {
-        total,
-        read,
-        unread,
-        activityData,
-    };
+        const activityData = Array.from(activityMap.entries())
+            .map(([date, count]) => ({ date, count }))
+            .reverse();
+
+        return {
+            total,
+            read,
+            unread,
+            activityData,
+        };
+    } catch (error) {
+        console.error("Error fetching notification analytics:", error);
+        return {
+            total: 0,
+            read: 0,
+            unread: 0,
+            activityData: [],
+        };
+    }
 }
