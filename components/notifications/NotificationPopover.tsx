@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "@/lib/auth-client";
 import {
     Popover,
     PopoverContent,
@@ -27,7 +28,10 @@ export function NotificationPopover() {
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
 
+    const { data: session } = useSession();
+
     const fetchNotifications = useCallback(async (cursor?: string) => {
+        if (!session) return;
         setLoading(true);
         try {
             const url = new URL("/api/notifications", window.location.origin);
@@ -35,7 +39,19 @@ export function NotificationPopover() {
             if (cursor) url.searchParams.set("cursor", cursor);
 
             const res = await fetch(url.toString());
+            if (!res.ok) {
+                if (res.status === 401) {
+                    console.warn("User is unauthorized. Skipping notifications fetch.");
+                    return;
+                }
+                throw new Error("Failed to fetch notifications");
+            }
+
             const data = await res.json();
+            if (!data || !data.items) {
+                setNotifications([]);
+                return;
+            }
 
             if (cursor) {
                 setNotifications((prev) => [...prev, ...data.items]);
@@ -44,15 +60,18 @@ export function NotificationPopover() {
             }
             setNextCursor(data.nextCursor);
         } catch (error) {
+            console.error("Error fetching notifications:", error);
             toast.error("Failed to fetch notifications");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [session]);
 
     useEffect(() => {
-        fetchNotifications();
-    }, [fetchNotifications]);
+        if (session) {
+            fetchNotifications();
+        }
+    }, [fetchNotifications, session]);
 
     const markAsRead = async (id: string) => {
         try {
@@ -84,6 +103,8 @@ export function NotificationPopover() {
             toast.error("Failed to mark all as read");
         }
     };
+
+    if (!session) return null;
 
     const unreadCount = notifications.filter((n) => !n.isRead).length;
 
