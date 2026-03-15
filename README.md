@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SaaS Starter Kit
+
+A robust and scalable SaaS starter kit built with Next.js, Better Auth, Prisma, and Stripe. This project provides a solid foundation for building your next SaaS application with built-in subscription management, authentication, and more.
+
+## Tech Stack
+
+- **Framework:** [Next.js (App Router)](https://nextjs.org/)
+- **Authentication:** [Better Auth](https://better-auth.com/)
+- **ORM:** [Prisma](https://www.prisma.io/)
+- **Database:** [PostgreSQL](https://www.postgresql.org/)
+- **Payments:** [Stripe](https://stripe.com/)
+- **Email:** [SendGrid](https://sendgrid.com/)
+- **Storage:** [MinIO](https://min.io/)
+- **Design:** [Tailwind CSS](https://tailwindcss.com/) + [Radix UI](https://www.radix-ui.com/)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Prerequisites
+
+- Node.js (Latest LTS)
+- PNPM installed (`npm install -g pnpm`)
+- Docker (optional, for local Postgres/MinIO)
+
+### 2. Installation
+
+Clone the repository and install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd saas-starter
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Environment Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy the example environment file and fill in your credentials:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.example .env
+```
 
-## Learn More
+Review `.env` and provide values for:
+- Database connection string
+- Google OAuth credentials
+- Better Auth secret
+- Stripe keys and Price IDs
+- SendGrid API key
+- MinIO configuration
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Database Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Ensure your PostgreSQL instance is running, then set up the schema:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm prisma generate
+pnpm prisma db push
+```
 
-## Deploy on Vercel
+*Note: Use `pnpm prisma migrate dev` for production-grade migrations.*
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 5. Stripe Configuration
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Set up your products and prices in the Stripe Dashboard.
+2. Update the `STRIPE_*_PRICE_ID_*` variables in your `.env`.
+3. For local webhook testing, use the [Stripe CLI](https://stripe.com/docs/stripe-cli):
+   ```bash
+   stripe listen --forward-to localhost:3000/api/webhook/stripe
+   ```
+4. Update `STRIPE_WEBHOOK_SECRET` with the key provided by the CLI.
+
+### 6. Running Locally
+
+Start the development server:
+
+```bash
+pnpm dev
+```
+
+The application will be available at `http://localhost:3000`.
+
+## Features
+
+- **Authentication:** Secure login with Google and email/password.
+- **Subscription Management:** Tiered plans (Plus, Enterprise) powered by Stripe.
+- **Gated Content:** Feature-level access control based on user subscriptions.
+- **Admin Dashboard:** Manage users, monitor subscriptions, and send notifications.
+- **Feedback System:** Integrated user feedback and discussion boards.
+- **Storage:** S3-compatible file uploads via MinIO.
+- **Emails:** Transactional emails for verification and notifications via SendGrid.
+
+## Project Structure
+
+- `app/`: Next.js App Router pages and layouts.
+- `components/`: Reusable UI components.
+- `lib/`: Utilities, constants, and database client.
+- `prisma/`: Database schema and migrations.
+- `config/`: Application configuration (Stripe, Auth).
+
+## License
+
+This project is licensed under the MIT License.
