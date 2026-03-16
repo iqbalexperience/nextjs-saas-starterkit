@@ -8,6 +8,8 @@ import { Clock, CheckCircle, BellSlash } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
+import { RedirectToSignIn } from "@daveyplate/better-auth-ui";
+import { useSession } from "@/lib/auth-client";
 
 interface Notification {
     id: string;
@@ -19,6 +21,7 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
+    const { data: session, isPending } = useSession();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -65,6 +68,18 @@ export default function NotificationsPage() {
             toast.error("Failed to mark as read");
         }
     };
+
+    if (isPending) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            </div>
+        );
+    }
+
+    if (!session) {
+        return <RedirectToSignIn />;
+    }
 
     return (
         <div className="max-w-4xl mx-auto py-10 px-4">

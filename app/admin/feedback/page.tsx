@@ -6,6 +6,7 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RedirectToSignIn } from "@daveyplate/better-auth-ui";
+import Unauthorized from "@/components/unauthorized";
 import {
     Table,
     TableBody,
@@ -91,9 +92,7 @@ export default function AdminFeedbackPage() {
     const itemsPerPage = 10;
 
     useEffect(() => {
-        if (!isPending && (!session || session.user.role !== "admin")) {
-            router.push("/");
-        }
+        // Redirection logic is handled by the guards below
     }, [session, isPending, router]);
 
     const fetchData = async () => {
@@ -260,7 +259,7 @@ export default function AdminFeedbackPage() {
         currentPage * itemsPerPage
     );
 
-    if (isPending || (!session || session.user.role !== "admin")) {
+    if (isPending) {
         return (
             <div className="flex items-center justify-center min-h-screen text-xs">
                 <CircleNotch className="h-4 w-4 animate-spin text-primary" />
@@ -268,10 +267,16 @@ export default function AdminFeedbackPage() {
         );
     }
 
+    if (!session) {
+        return <RedirectToSignIn />;
+    }
+
+    if (session.user.role !== "admin") {
+        return <Unauthorized />;
+    }
+
     return (
-        <>
-            <RedirectToSignIn />
-            <div className="space-y-6 max-w-full mx-auto p-0">
+        <div className="space-y-6 max-w-full mx-auto p-0">
                 <div className="flex justify-between items-center mb-4">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-foreground">Feedback Management</h1>
@@ -786,6 +791,6 @@ export default function AdminFeedbackPage() {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-        </>
+        </div>
     );
 }

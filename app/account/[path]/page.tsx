@@ -1,5 +1,8 @@
-import { AccountView } from "@daveyplate/better-auth-ui"
+import { AccountView, RedirectToSignIn } from "@daveyplate/better-auth-ui"
 import { accountViewPaths } from "@daveyplate/better-auth-ui/server"
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 
 export const dynamicParams = false
 
@@ -8,6 +11,14 @@ export function generateStaticParams() {
 }
 
 export default async function AccountPage({ params }: { params: Promise<{ path: string }> }) {
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    })
+
+    if (!session) {
+        return <RedirectToSignIn />
+    }
+
     const { path } = await params
 
     return (

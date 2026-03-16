@@ -7,8 +7,25 @@ import {
     ChartLineUp,
 } from "@phosphor-icons/react/dist/ssr";
 import { SendNotificationDialog } from "@/components/notifications/SendNotificationDialog";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import Unauthorized from "@/components/unauthorized";
+import { RedirectToSignIn } from "@daveyplate/better-auth-ui";
 
 export default async function AdminNotificationsPage() {
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session) {
+        return <RedirectToSignIn />
+    }
+
+    if (session.user.role !== "admin") {
+        return <Unauthorized />;
+    }
+
     const { total, read, unread, activityData } = await getNotificationAnalytics();
 
     return (
@@ -70,9 +87,9 @@ export default async function AdminNotificationsPage() {
                     <div className="h-[200px] flex items-end gap-2 pt-4">
                         {activityData.map((day) => (
                             <div key={day.date} className="flex-1 flex flex-col items-center gap-2 group">
-                                <div 
+                                <div
                                     className="w-full bg-primary/20 rounded-t-sm transition-all group-hover:bg-primary/40 relative"
-                                    style={{ 
+                                    style={{
                                         height: `${total > 0 ? (day.count / Math.max(...activityData.map(d => d.count), 1)) * 100 : 0}%`,
                                         minHeight: day.count > 0 ? '4px' : '0px'
                                     }}

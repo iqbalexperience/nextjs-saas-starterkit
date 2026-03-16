@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import DiscussionCard from "@/components/forum/discussion-card";
-import { SignedIn, SignedOut } from "@daveyplate/better-auth-ui";
+import { SignedIn, SignedOut, RedirectToSignIn } from "@daveyplate/better-auth-ui";
 import ForumFilters from "@/components/forum/forum-filters";
 
 async function getDiscussions(search: string = "", page: number = 1, sort: string = "latest", filter: string = "all") {

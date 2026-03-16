@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import {
     BarChart3, MessageSquare, FileText, Eye,
@@ -24,9 +25,13 @@ import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
 import { RedirectToSignIn } from "@daveyplate/better-auth-ui";
 import { useDebounce } from "use-debounce";
+import Unauthorized from "@/components/unauthorized";
+import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 export default function AdminForumPage() {
+    const { data: session, isPending } = useSession();
+    const router = useRouter();
     const [analytics, setAnalytics] = useState<any>(null);
     const [discussions, setDiscussions] = useState<any[]>([]);
     const [search, setSearch] = useState("");
@@ -96,12 +101,20 @@ export default function AdminForumPage() {
     };
 
 
-    if (isLoading && !analytics) return <div className="p-10 text-center text-muted-foreground animate-pulse">Loading management panel...</div>;
+    if (isPending) {
+        return <div className="p-10 text-center text-muted-foreground animate-pulse">Loading management panel...</div>;
+    }
+
+    if (!session) {
+        return <RedirectToSignIn />;
+    }
+
+    if (session.user.role !== "admin") {
+        return <Unauthorized />;
+    }
 
     return (
-        <>
-            <RedirectToSignIn />
-            <div className="p-8 space-y-8 font-sans bg-background min-h-screen">
+        <div className="p-8 space-y-8 font-sans bg-background min-h-screen">
                 <div className="flex justify-between items-end">
                     <div>
                         <h1 className="text-3xl font-extrabold tracking-tight">Forum Management</h1>
@@ -365,7 +378,7 @@ export default function AdminForumPage() {
                     )}
                 </div>
             </div>
-        </>
+        </div>
     );
 }
 

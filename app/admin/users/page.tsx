@@ -60,6 +60,7 @@ import { UserInviteDialog } from "@/components/user-invite-dialog"
 import { UserAnalytics } from "@/components/user-analytics"
 import { SendNotificationDialog } from "@/components/notifications/SendNotificationDialog"
 import { RedirectToSignIn } from "@daveyplate/better-auth-ui"
+import Unauthorized from "@/components/unauthorized"
 
 export default function AdminUsersPage() {
     const { data: session, isPending } = useSession()
@@ -79,11 +80,7 @@ export default function AdminUsersPage() {
     const [currentPage, setCurrentPage] = useState(1)
     const usersPerPage = 5
 
-    useEffect(() => {
-        if (!isPending && (!session || session.user.role !== "admin")) {
-            router.push("/")
-        }
-    }, [session, isPending, router])
+
 
     const loadUsers = async () => {
         setLoading(true)
@@ -202,7 +199,7 @@ export default function AdminUsersPage() {
         }
     }
 
-    if (isPending || (!session || session.user.role !== "admin")) {
+    if (isPending) {
         return (
             <div className="flex items-center justify-center min-h-screen text-xs">
                 <CircleNotch className="h-4 w-4 animate-spin text-primary" />
@@ -210,297 +207,303 @@ export default function AdminUsersPage() {
         )
     }
 
+    if (!session) {
+        return <RedirectToSignIn />
+    }
+
+    if (session.user.role !== "admin") {
+        return <Unauthorized />
+    }
+
     return (
-        <>
-            <RedirectToSignIn />
-            <div className=" space-y-6 max-w-7xl mx-auto">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
-                        <p className="text-muted-foreground text-xs">Overview and user management.</p>
-                    </div>
+        <div className=" space-y-6 max-w-7xl mx-auto">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
+                    <p className="text-muted-foreground text-xs">Overview and user management.</p>
                 </div>
+            </div>
 
-                <UserAnalytics users={users} />
+            <UserAnalytics users={users} />
 
-                <Card className="border-none shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                        <div>
-                            <CardTitle className="text-lg">User Management</CardTitle>
-                            <CardDescription className="text-xs">
-                                Manage your users, roles, and permissions.
-                            </CardDescription>
-                        </div>
-                        <UserInviteDialog onInviteSuccess={loadUsers} />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col md:flex-row gap-4 mb-6">
-                            <div className="relative flex-1">
-                                <MagnifyingGlass className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search by name or email..."
-                                    value={searchTerm}
-                                    onChange={(e) => {
-                                        setSearchTerm(e.target.value)
-                                        setCurrentPage(1)
-                                    }}
-                                    className="pl-9 text-xs"
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <Select value={filterRole} onValueChange={(v) => { setFilterRole(v as string); setCurrentPage(1); }}>
-                                    <SelectTrigger className="w-[130px] text-xs">
-                                        <Funnel className="mr-2 h-3 w-3" />
-                                        <SelectValue placeholder="Role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Roles</SelectItem>
-                                        <SelectItem value="user">User</SelectItem>
-                                        <SelectItem value="admin">Admin</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v as string); setCurrentPage(1); }}>
-                                    <SelectTrigger className="w-[130px] text-xs">
-                                        <Funnel className="mr-2 h-3 w-3" />
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Status</SelectItem>
-                                        <SelectItem value="active">Active</SelectItem>
-                                        <SelectItem value="banned">Banned</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="rounded-md border border-muted/50 overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-muted/30 text-xs">
-                                    <TableRow>
-                                        <TableHead
-                                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                            onClick={() => toggleSort("name")}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                User
-                                                <ArrowsDownUp className="h-3 w-3 opacity-50" />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead
-                                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                            onClick={() => toggleSort("createdAt")}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                Joined
-                                                <ArrowsDownUp className="h-3 w-3 opacity-50" />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody className="text-xs">
-                                    {loading ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-10">
-                                                <CircleNotch className="h-4 w-4 animate-spin mx-auto text-primary" />
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : paginatedUsers.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                                                No users found.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        paginatedUsers.map((user) => (
-                                            <TableRow key={user.id}>
-                                                <TableCell className="font-medium">{user.name || "N/A"}</TableCell>
-                                                <TableCell>{user.email}</TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {new Date(user.createdAt).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-[10px] py-0 px-1.5">
-                                                        {user.role || "user"}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {user.banned ? (
-                                                        <div className="flex flex-col items-start gap-1">
-                                                            <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-normal">Banned</Badge>
-                                                            {user.banReason && (
-                                                                <span className="text-[10px] text-muted-foreground italic max-w-[150px] truncate" title={user.banReason}>
-                                                                    "{user.banReason}"
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <Badge variant="outline" className="text-green-600 border-green-600/30 bg-green-100 text-[10px] py-0 px-1.5 font-normal">Active</Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                                <DotsThree className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="text-xs">
-                                                            <DropdownMenuItem onClick={() => handleSetRole(user.id, user.role === "admin" ? "user" : "admin")}>
-                                                                <Shield className="mr-2 h-3.5 w-3.5" />
-                                                                {user.role === "admin" ? "Demote to User" : "Promote to Admin"}
-                                                            </DropdownMenuItem>
-
-                                                            <SendNotificationDialog
-                                                                userId={user.id}
-                                                                userName={user.name || user.email}
-                                                                trigger={
-                                                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                                        <Bell className="mr-2 h-3.5 w-3.5" />
-                                                                        Send Notification
-                                                                    </DropdownMenuItem>
-                                                                }
-                                                            />
-
-                                                            <DropdownMenuItem
-                                                                onClick={() => {
-                                                                    if (user.banned) {
-                                                                        handleUnbanUser(user.id)
-                                                                    } else {
-                                                                        setUserToBan(user.id)
-                                                                        setIsBanDialogOpen(true)
-                                                                    }
-                                                                }}
-                                                                className={user.banned ? "text-green-600 focus:text-green-600" : "text-red-600 focus:text-red-600"}
-                                                            >
-                                                                {user.banned ? (
-                                                                    <>
-                                                                        <CheckCircle className="mr-2 h-3.5 w-3.5" />
-                                                                        Unban User
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Prohibit className="mr-2 h-3.5 w-3.5" />
-                                                                        Ban User
-                                                                    </>
-                                                                )}
-                                                            </DropdownMenuItem>
-
-                                                            <AlertDialog>
-                                                                <AlertDialogTrigger asChild>
-                                                                    <DropdownMenuItem
-                                                                        onSelect={(e) => e.preventDefault()}
-                                                                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                                                                    >
-                                                                        <Trash className="mr-2 h-3.5 w-3.5" />
-                                                                        Delete User
-                                                                    </DropdownMenuItem>
-                                                                </AlertDialogTrigger>
-                                                                <AlertDialogContent>
-                                                                    <AlertDialogHeader>
-                                                                        <div className="flex items-center gap-2 mb-2">
-                                                                            <div className="p-2 bg-red-100 rounded-full">
-                                                                                <Warning className="size-5 text-red-600" weight="bold" />
-                                                                            </div>
-                                                                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                                                        </div>
-                                                                        <AlertDialogDescription>
-                                                                            Are you sure you want to delete <strong>{user.name || user.email}</strong>?
-                                                                            This action cannot be undone and will permanently remove their account and data.
-                                                                        </AlertDialogDescription>
-                                                                    </AlertDialogHeader>
-                                                                    <AlertDialogFooter>
-                                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                        <AlertDialogAction
-                                                                            className="bg-red-600 hover:bg-red-700 text-white"
-                                                                            onClick={() => handleRemoveUser(user.id)}
-                                                                        >
-                                                                            Confirm Deletion
-                                                                        </AlertDialogAction>
-                                                                    </AlertDialogFooter>
-                                                                </AlertDialogContent>
-                                                            </AlertDialog>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-between pt-4">
-                                <p className="text-xs text-muted-foreground">
-                                    Showing {(currentPage - 1) * usersPerPage + 1} to {Math.min(currentPage * usersPerPage, processedUsers.length)} of {processedUsers.length} users
-                                </p>
-                                <div className="flex gap-1.5">
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                    >
-                                        <CaretLeft className="h-3 w-3" />
-                                    </Button>
-                                    <div className="flex items-center px-3 text-xs font-medium">
-                                        {currentPage} / {totalPages}
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage === totalPages}
-                                    >
-                                        <CaretRight className="h-3 w-3" />
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-                {/* Ban Reason Dialog */}
-                <AlertDialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
-                    <AlertDialogContent className="sm:max-w-[425px]">
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Ban User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Please provide a reason for banning this user. This will be visible to other administrators.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="py-4">
+            <Card className="border-none shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                    <div>
+                        <CardTitle className="text-lg">User Management</CardTitle>
+                        <CardDescription className="text-xs">
+                            Manage your users, roles, and permissions.
+                        </CardDescription>
+                    </div>
+                    <UserInviteDialog onInviteSuccess={loadUsers} />
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col md:flex-row gap-4 mb-6">
+                        <div className="relative flex-1">
+                            <MagnifyingGlass className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Reason for ban (e.g. Terms of Service violation)"
-                                value={banReasonInput}
-                                onChange={(e) => setBanReasonInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        handleBanUser(userToBan!, banReasonInput)
-                                    }
+                                placeholder="Search by name or email..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value)
+                                    setCurrentPage(1)
                                 }}
+                                className="pl-9 text-xs"
                             />
                         </div>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => {
-                                setBanReasonInput("")
-                                setUserToBan(null)
-                            }}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={() => handleBanUser(userToBan!, banReasonInput)}
-                                className="bg-red-600 hover:bg-red-700"
-                            >
-                                Ban User
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </div>
-        </>
+                        <div className="flex gap-2">
+                            <Select value={filterRole} onValueChange={(v) => { setFilterRole(v as string); setCurrentPage(1); }}>
+                                <SelectTrigger className="w-[130px] text-xs">
+                                    <Funnel className="mr-2 h-3 w-3" />
+                                    <SelectValue placeholder="Role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Roles</SelectItem>
+                                    <SelectItem value="user">User</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v as string); setCurrentPage(1); }}>
+                                <SelectTrigger className="w-[130px] text-xs">
+                                    <Funnel className="mr-2 h-3 w-3" />
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="banned">Banned</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="rounded-md border border-muted/50 overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-muted/30 text-xs">
+                                <TableRow>
+                                    <TableHead
+                                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                        onClick={() => toggleSort("name")}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            User
+                                            <ArrowsDownUp className="h-3 w-3 opacity-50" />
+                                        </div>
+                                    </TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead
+                                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                        onClick={() => toggleSort("createdAt")}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Joined
+                                            <ArrowsDownUp className="h-3 w-3 opacity-50" />
+                                        </div>
+                                    </TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody className="text-xs">
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-10">
+                                            <CircleNotch className="h-4 w-4 animate-spin mx-auto text-primary" />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : paginatedUsers.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                            No users found.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    paginatedUsers.map((user) => (
+                                        <TableRow key={user.id}>
+                                            <TableCell className="font-medium">{user.name || "N/A"}</TableCell>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {new Date(user.createdAt).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-[10px] py-0 px-1.5">
+                                                    {user.role || "user"}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {user.banned ? (
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-normal">Banned</Badge>
+                                                        {user.banReason && (
+                                                            <span className="text-[10px] text-muted-foreground italic max-w-[150px] truncate" title={user.banReason}>
+                                                                "{user.banReason}"
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-green-600 border-green-600/30 bg-green-100 text-[10px] py-0 px-1.5 font-normal">Active</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                            <DotsThree className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="text-xs">
+                                                        <DropdownMenuItem onClick={() => handleSetRole(user.id, user.role === "admin" ? "user" : "admin")}>
+                                                            <Shield className="mr-2 h-3.5 w-3.5" />
+                                                            {user.role === "admin" ? "Demote to User" : "Promote to Admin"}
+                                                        </DropdownMenuItem>
+
+                                                        <SendNotificationDialog
+                                                            userId={user.id}
+                                                            userName={user.name || user.email}
+                                                            trigger={
+                                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                                    <Bell className="mr-2 h-3.5 w-3.5" />
+                                                                    Send Notification
+                                                                </DropdownMenuItem>
+                                                            }
+                                                        />
+
+                                                        <DropdownMenuItem
+                                                            onClick={() => {
+                                                                if (user.banned) {
+                                                                    handleUnbanUser(user.id)
+                                                                } else {
+                                                                    setUserToBan(user.id)
+                                                                    setIsBanDialogOpen(true)
+                                                                }
+                                                            }}
+                                                            className={user.banned ? "text-green-600 focus:text-green-600" : "text-red-600 focus:text-red-600"}
+                                                        >
+                                                            {user.banned ? (
+                                                                <>
+                                                                    <CheckCircle className="mr-2 h-3.5 w-3.5" />
+                                                                    Unban User
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Prohibit className="mr-2 h-3.5 w-3.5" />
+                                                                    Ban User
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuItem>
+
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <DropdownMenuItem
+                                                                    onSelect={(e) => e.preventDefault()}
+                                                                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                                                >
+                                                                    <Trash className="mr-2 h-3.5 w-3.5" />
+                                                                    Delete User
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="p-2 bg-red-100 rounded-full">
+                                                                            <Warning className="size-5 text-red-600" weight="bold" />
+                                                                        </div>
+                                                                        <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                                                    </div>
+                                                                    <AlertDialogDescription>
+                                                                        Are you sure you want to delete <strong>{user.name || user.email}</strong>?
+                                                                        This action cannot be undone and will permanently remove their account and data.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                                                        onClick={() => handleRemoveUser(user.id)}
+                                                                    >
+                                                                        Confirm Deletion
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-4">
+                            <p className="text-xs text-muted-foreground">
+                                Showing {(currentPage - 1) * usersPerPage + 1} to {Math.min(currentPage * usersPerPage, processedUsers.length)} of {processedUsers.length} users
+                            </p>
+                            <div className="flex gap-1.5">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    <CaretLeft className="h-3 w-3" />
+                                </Button>
+                                <div className="flex items-center px-3 text-xs font-medium">
+                                    {currentPage} / {totalPages}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    <CaretRight className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+            {/* Ban Reason Dialog */}
+            <AlertDialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
+                <AlertDialogContent className="sm:max-w-[425px]">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Ban User</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Please provide a reason for banning this user. This will be visible to other administrators.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="py-4">
+                        <Input
+                            placeholder="Reason for ban (e.g. Terms of Service violation)"
+                            value={banReasonInput}
+                            onChange={(e) => setBanReasonInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleBanUser(userToBan!, banReasonInput)
+                                }
+                            }}
+                        />
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => {
+                            setBanReasonInput("")
+                            setUserToBan(null)
+                        }}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => handleBanUser(userToBan!, banReasonInput)}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Ban User
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+        </div >
     )
 }

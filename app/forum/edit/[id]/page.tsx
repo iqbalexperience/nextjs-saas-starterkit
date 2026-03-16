@@ -85,9 +85,7 @@ export default function EditDiscussionPage() {
     if (isLoading) return <div className="container py-20 text-center">Loading...</div>;
 
     return (
-        <>
-            <RedirectToSignIn />
-            <div className="container max-w-4xl py-10 font-sans">
+        <div className="container max-w-4xl py-10 font-sans">
                 <Link
                     href={`/forum/${id}`}
                     className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors"
@@ -164,7 +162,6 @@ export default function EditDiscussionPage() {
                         </div>
                     </form>
                 </div>
-            </div>
-        </>
+        </div>
     );
 }
