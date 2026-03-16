@@ -504,6 +504,5 @@ export default function AdminUsersPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
-        </div >
     )
 }
